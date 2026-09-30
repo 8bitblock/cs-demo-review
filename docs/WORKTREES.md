@@ -17,7 +17,7 @@ Worktree chats initially use a detached HEAD. To publish work, use **Create bran
 
 `npm run setup:worktree` checks Node.js and Go, installs locked npm dependencies with `npm ci`, checks TypeScript, and builds the Go workers and Electron/React app. It stops on a failed step. Run it manually for an ordinary clone or manually created Git worktree. Close any running app from that checkout before rerunning setup, since dependencies and binaries are rebuilt.
 
-Windows with Node.js 22.12+ is required. Setup uses `GO_BINARY`, a checkout-local portable Go installation, or Go on PATH, in that order. If none exists, it installs the existing checksum-pinned portable Go toolchain through `scripts/setup-tools.mjs`. Go 1.25+ is required. Fresh installs need network access to fetch dependencies.
+Windows x64 with Node.js 22.12+ is required. Setup uses `GO_BINARY`, a checkout-local portable Go installation, or Go on PATH, in that order. If none exists, it installs the existing checksum-pinned portable Go toolchain through `scripts/setup-tools.mjs`. Go 1.25+ is required. Fresh installs need network access to fetch dependencies, including the Electron runtime resolved during setup.
 
 For local app-managed worktrees, `.worktreeinclude` copies an existing portable Go installation and optional Source2Viewer installation. Other ignored files are not included by this project configuration. Ordinary Git worktrees do not perform this copy. Install the optional map extractor with the environment action or `node scripts/setup-tools.mjs --extractor` when needed.
 

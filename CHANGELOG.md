@@ -66,3 +66,4 @@
 - Isolated source app profiles, instance locks, settings, and libraries per checkout so parallel worktrees do not share application data by default.
 - Fixed development-server port collisions and used the actual loopback port for Electron loading and its restricted development WebSocket policy.
 - Added development-origin regression tests, persistent project instructions, and a guide for starting worktree chats, creating branches, and handing work back to the local checkout.
+- Provisioned Electron's lazily downloaded runtime during worktree setup so download failures surface before the first app launch.

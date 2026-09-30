@@ -43,6 +43,8 @@ try {
 
     Write-Host 'Installing dependencies into this checkout...'
     Invoke-SetupCommand 'npm.cmd' @('ci', '--no-audit', '--no-fund')
+    # Electron resolves/downloads its runtime lazily on first require.
+    Invoke-SetupCommand 'node' @('-e', "require('electron')")
     Invoke-SetupCommand 'npm.cmd' @('run', 'typecheck')
     Invoke-SetupCommand 'npm.cmd' @('run', 'build:worker')
     Invoke-SetupCommand 'npm.cmd' @('run', 'build:app')

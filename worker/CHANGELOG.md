@@ -1,0 +1,25 @@
+# Worker changes
+
+- Added isolated, pinned Go parsers for CS2 (demoinfocs v5.2.0) and CS:GO (v3.3.0), content signature and Counter-Strike metadata checks, bounded snapshot batches, original demo timestamps, events, shots, player statistics, and parser warning preservation.
+- Added SQLite storage, indexed replay windows, duplicate detection using SHA-256, asynchronous queued imports, progress and cancellation, review notes and bookmarks, map asset persistence, per-player analysis, and newline JSON RPC.
+- Added separate parser executables so incompatible protobuf versions and parser crashes stay isolated; original recordings remain read-only.
+- Added validation tests covering unknown/truncated signatures, non-CS metadata, ambiguous impacts and penetration endpoints, bounded replay queries, duplicate identities, note persistence and validation, and derived-data-only removal.
+- Fixed shot uncertainty units to seconds, added a pre-release cache migration and automatic reanalysis when rules change, repaired moved-source paths on duplicate imports without losing reviews, and made queue notifications and shutdown deterministic.
+- Verified full imports of a local CS2 dust2 recording (94,385 ticks, 10 players, 17 rounds) and the official legacy CS:GO cache fixture (426,607 ticks, 10 players, 32 rounds).
+- Excluded warmup and unstarted-match shots from assessments while preserving replay; verified 3 excluded CS2 shots and 22 excluded CS:GO shots in real recordings. Recorded the CS:GO server map CRC for historical pack matching.
+- Added atomic parser upgrades preserving demo identity, notes and map selections; old adapter caches are ineligible for assessments until reparsed. Added migration and atomic-reimport regression tests.
+- Fixed historical-map selection so the newest exact matching imported pack supersedes an older local extraction; retained the explicit per-demo selection as fallback.
+- Extended service shutdown cancellation to map extraction and manual reanalysis, with cancellation checks before saving analysis results and regression coverage.
+- Fixed CS2 native fire telemetry by resolving the recorded player-pawn handle instead of a controller handle; uniquely associated same-tick packets now retain native fire angles, aim-punch, recoil index, spread, and inaccuracy with explicit source provenance and finite-value checks.
+- Added CS:GO sampled aim-punch on player snapshots and shots, with separate sampled-recoil provenance, and per-observer recorded spotting masks for both engines; absent masks remain unknown rather than unspotted.
+- Fixed repeated frames for the same game tick resetting sampled movement speed to zero, and rejected invalid optional snapshot telemetry without losing the valid player snapshot.
+- Verified parser adapter 4 against real recordings: Inferno recovered 2,113 native direction/aim-punch shot records and 1,118,856 spotting snapshots; the CS:GO cache fixture retained 5,142 sampled-recoil shots and 811,688 spotting snapshots. Added regression coverage for pawn handles, native associations, ambiguity, malformed telemetry, and repeated-tick movement.
+- Corrected recoil units: CS2 fire-packet aim-punch is an effective angle offset at scale 1, verified against 2,321 substantial-recoil packets across Inferno and Ancient; legacy sampled entity punch retains an explicit nominal scale-2 assumption.
+- Added neutral recoil compensation and shot-direction measurements, source-specific punch scales, separate geometric/spotting timing, and provenance-bearing review moments.
+- Fixed blanket visual-context exclusions suppressing ordinary aim coverage; added measured/limited signal states and useful reviewed-with-limits assessments without lowering repeated-suspicion thresholds.
+- Added automatic atomic parser upgrades preserving library IDs, notes and map selections, source-hash verification, and missing-source recovery warnings.
+- Fixed staged partial recordings being analyzed as complete and preserved newer parser adapters during historical phase-validation migrations.
+- Recovered contiguous recoil bursts after missing or ambiguous native packets without bridging gaps; retained the three-shot measurement and seven-shot strict detector minimums.
+- Added shared recoil-interval continuity checks for intermediate deaths, flashes, team or weapon changes, sampling gaps, and position or eye teleports while retaining ordinary moving-spray measurements.
+- Preserved three decimal places for angular measurements and small recoil residuals in stored JSON; added focused precision, missing-packet, association, movement, and discontinuity regressions.
+- Verified the final recoil subrun checks against the cloned Cache, Ancient, and Inferno libraries: 9,797 shots across 30 players yielded 366 neutral review moments, 298 measurements, and no repeated suspicious findings.

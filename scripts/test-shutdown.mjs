@@ -1,0 +1,15 @@
+import {_electron as electron} from '@playwright/test';
+import {resolve} from 'node:path';
+import {promisify} from 'node:util';
+import {execFile} from 'node:child_process';
+import assert from 'node:assert/strict';
+const execute=promisify(execFile),dataDir=resolve('.tmp/shutdown-library');
+if(!process.argv[2])throw new Error('Pass a large demo path.');
+const app=await electron.launch({args:['.'],env:{...process.env,CS_DEMO_REVIEW_DATA_DIR:dataDir}});const page=await app.firstWindow();
+await page.waitForFunction(()=>!!window.csDemo);await page.evaluate(()=>{window.__shutdownStage='';window.csDemo.onImportProgress(p=>window.__shutdownStage=p.stage);});
+await app.evaluate(({dialog},path)=>{dialog.showOpenDialog=async()=>({canceled:false,filePaths:[path]});},resolve(process.argv[2]));
+await page.getByRole('button',{name:'Import demo',exact:true}).click();await page.waitForFunction(()=>window.__shutdownStage==='parsing');
+await app.close();
+const taskFilter=dataDir.replaceAll("'","''");
+const {stdout}=await execute('powershell.exe',['-NoProfile','-NonInteractive','-Command',`Get-CimInstance Win32_Process | Where-Object { $_.Name -match '^demo-(worker|parser-.*)\.exe$' -and $_.CommandLine -like '*${taskFilter}*' } | Select-Object -ExpandProperty ProcessId`],{windowsHide:true});
+assert.equal(stdout.trim(),'','App shutdown left a worker/parser process running');console.log('Closing the app mid-import leaves no worker or parser subprocess behind.');

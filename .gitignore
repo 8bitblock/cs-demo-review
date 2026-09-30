@@ -1,0 +1,14 @@
+node_modules/
+dist/
+dist-electron/
+release/
+.tools/
+.tmp/
+artifacts/
+worker/bin/
+*.log
+*.dem
+*.dem.bz2
+*.sqlite*
+.env*
+!.env.example

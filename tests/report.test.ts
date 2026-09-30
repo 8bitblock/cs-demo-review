@@ -1,0 +1,60 @@
+import { describe,it,expect } from 'vitest';
+import { escapeHTML,reportHTML,reportJSON } from '../electron/report';
+import type { MatchDetail, Player } from '../shared/types';
+const match:MatchDetail={demo:{id:'demo',name:'<img src=x onerror=alert(1)>',path:'C:\\private\\test.dem',engine:'cs2',map:'de_mirage',date:'2026-01-01',duration:100,tickRate:64,totalTicks:6400,status:'ready',playerCount:0,roundCount:1,fileSize:1000,hash:'abc',parserVersion:'v5',analysisVersion:'v1',recordingType:'GOTV',mapVersion:'',warnings:[]},players:[],rounds:[],findings:[],events:[],notes:[{id:'note',demoId:'demo',tick:100,playerId:'',text:'<script>alert(1)</script>',kind:'note',createdAt:''}]};
+const player:Player={id:'steam:123',name:'Player One',team:'CT',kills:12,deaths:9,assists:2,headshots:5,damage:900,verdict:'Insufficient data',evidenceCount:0,capabilities:[],coverage:'Aim samples available; map visibility unavailable.',review:{summary:'Review complete: no repeated rule triggers.',totalShots:140,sampledShots:100,eligibleAimShots:40,coveredRounds:7,medianSampleMs:31.25,metrics:[{label:'Median aim turn before a shot',value:2.75,unit:'°',samples:100}],exclusions:[{reason:'Smoke is ambiguous',count:25}],clips:[{id:'neutral:1',round:3,tick:4000,endTick:4010,time:62.5,title:'Aim turn before AK-47 shot',description:'Selected for manual review.',measurements:[{label:'Sample interval',value:31.25,unit:'ms'}],limitations:['A fast flick can be legitimate.']} ]}};
+describe('evidence exports',()=>{
+  it('escapes untrusted names and notes in the standalone report',()=>{const html=reportHTML(match);expect(html).not.toContain('<script>');expect(html).not.toContain('<img src=x');expect(html).toContain('&lt;script&gt;');expect(html).toContain('default-src');});
+  it('keeps source identity but excludes private paths in export',()=>{const data=JSON.parse(reportJSON(match));expect(data.demo.hash).toBe('abc');expect(data.demo.path).toBeUndefined();expect(data.notes).toHaveLength(1);});
+  it('escapes all HTML delimiters',()=>expect(escapeHTML('<>&"\'')).toBe('&lt;&gt;&amp;&quot;&#39;'));
+  it('exports measured review context without promoting neutral clips to evidence',()=>{
+    const reviewed={...match,players:[player]};
+    const html=reportHTML(reviewed);
+    expect(html).toContain('Review complete: no repeated rule triggers.');
+    expect(html).toContain('Median aim turn before a shot');
+    expect(html).toContain('<td>2.75 °</td><td>100</td>');
+    expect(html).toContain('Smoke is ambiguous');
+    expect(html).toContain('ROUND 3 · TICK 4000–4010 · 1:02');
+    expect(html).toContain('Player ID: <code>steam:123</code>');
+    expect(html).toContain('Clip ID: <code>neutral:1</code>');
+    expect(html).toContain('Analysis v1');
+    expect(html).toContain('not a cheating finding and not included in the evidence count');
+    expect(html).toContain('<h2>Evidence (0)</h2>');
+    expect(html).toContain('Assessment: Insufficient data');
+    const data=JSON.parse(reportJSON(reviewed));
+    expect(data.players[0].review).toEqual(player.review);
+    expect(data.findings).toEqual([]);
+    expect(data.players[0].verdict).toBe('Insufficient data');
+    expect(data.demo.path).toBeUndefined();
+  });
+  it('escapes every new review text field, including clip identities and exclusions',()=>{
+    const payload='<svg onload="alert(1)">';
+    const hostile:Player={...player,id:payload,name:payload,review:{...player.review!,summary:payload,metrics:[{label:payload,value:1,unit:payload,samples:3}],exclusions:[{reason:payload,count:1}],clips:[{id:payload,round:1,tick:1,endTick:1,time:0,title:payload,description:payload,measurements:[{label:payload,value:1,unit:payload}],limitations:[payload]}]}};
+    const html=reportHTML({...match,players:[hostile]});
+    expect(html).not.toContain('<svg');
+    expect(html.match(/&lt;svg onload=&quot;alert\(1\)&quot;&gt;/g)?.length).toBeGreaterThanOrEqual(12);
+  });
+  it('keeps unavailable cadence and old cached reviews explicit',()=>{
+    const noReview={...player,review:undefined};
+    const emptyReview={...player,review:{...player.review!,medianSampleMs:null,metrics:[],exclusions:[],clips:[]}};
+    const html=reportHTML({...match,players:[noReview,emptyReview]});
+    expect(html).toContain('Detailed review data was not available');
+    expect(html).toContain('<dt>Median sample interval</dt><dd>Unavailable</dd>');
+    expect(html).toContain('No neutral clips were selected. This does not establish legitimate play.');
+    expect(html).not.toContain('NaN');
+  });
+  it('separates proxy measurements from detector eligibility and exports their sources',()=>{
+    const measured:Player={...player,verdict:'Reviewed with limits',capabilities:[{signal:'reaction',status:'measured',samples:0,measuredSamples:24,basis:'Network spotting, not screen visibility',reason:'Geometry unavailable.'},{signal:'recoil',status:'limited',samples:3,measuredSamples:8,basis:'Native shot fields',reason:'Only three eligible sprays.'},{signal:'shot-direction',status:'measured',samples:0,measuredSamples:90,basis:'Recorded impact endpoints',reason:'Validated bullet direction unavailable.'}],review:{...player.review!,metrics:[{label:'Spotting to shot',value:125,unit:'ms',samples:24,signal:'reaction',provenance:'Network spotting <proxy>'}],clips:[{...player.review!.clips[0],signal:'reaction',provenance:'Network spotting <proxy>'}]}};
+    const html=reportHTML({...match,players:[measured]});
+    expect(html).toContain('Assessment: Reviewed with limits');
+    expect(html).toContain('24 measured observations · 0 detector-eligible observations');
+    expect(html).toContain('8 measured observations · 3 detector-eligible observations');
+    expect(html).toContain('Visibility reaction');
+    expect(html).toContain('Recoil compensation');
+    expect(html).toContain('Shot direction');
+    expect(html).toContain('Network spotting &lt;proxy&gt;');
+    expect(html).not.toContain('<proxy>');
+    expect(html).toContain('<h2>Evidence (0)</h2>');
+    expect(JSON.parse(reportJSON({...match,players:[measured]})).players[0]).toEqual(measured);
+  });
+});

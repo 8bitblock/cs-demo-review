@@ -1,0 +1,10 @@
+import { spawn } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { createServer } from 'vite';
+import './build-electron.mjs';
+const require = createRequire(import.meta.url);
+const server = await createServer();
+await server.listen();
+const child = spawn(require('electron'), ['.'], { stdio: 'inherit', env: { ...process.env, DEMO_REVIEW_DEV_URL: 'http://127.0.0.1:5173' } });
+child.on('exit', async (code) => { await server.close(); process.exit(code ?? 0); });
+process.on('SIGINT', () => child.kill());

@@ -6,6 +6,7 @@
   "author": "CS Demo Review",
   "main": "dist-electron/main.cjs",
   "scripts": {
+    "setup:worktree": "powershell.exe -NoProfile -File scripts/setup-worktree.ps1",
     "dev": "node scripts/dev.mjs",
     "build:worker": "node scripts/build-worker.mjs",
     "build:app": "vite build && node scripts/build-electron.mjs",

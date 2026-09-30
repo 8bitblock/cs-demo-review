@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog, clipboard, protocol, net, shell, session, desktopCapturer } from 'electron';
 import { join, resolve, basename, extname } from 'node:path';
 import { mkdir, readFile, stat, writeFile, realpath } from 'node:fs/promises';
+import { mkdirSync } from 'node:fs';
 import { createHash, randomUUID } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { z } from 'zod';
@@ -12,9 +13,19 @@ import { ClipStore } from './clips';
 import { parseVideoRange } from './video-range';
 import { loadSettings, writeSettings, exists, gameRoot } from './settings';
 import { reportHTML, reportJSON } from './report';
+import { developmentOrigin } from './development';
 import type { AppSettings, Demo, MapAsset, MatchDetail, PlaybackCommands, ImportProgress } from '../shared/types';
 
 protocol.registerSchemesAsPrivileged([{scheme:'demomap',privileges:{standard:true,secure:true,supportFetchAPI:true,corsEnabled:true}},{scheme:'democlip',privileges:{standard:true,secure:true,supportFetchAPI:true,stream:true}}]);
+// Each source checkout owns its library, Chromium profile and instance lock.
+// Set both paths before requesting the lock or creating any browser sessions.
+if(!app.isPackaged){
+  const sourceUserData=resolve(__dirname,'../.tmp/electron-user-data');
+  mkdirSync(sourceUserData,{recursive:true});
+  app.setPath('userData',sourceUserData);
+  app.setPath('sessionData',sourceUserData);
+}
+const devOrigin=developmentOrigin(process.env.DEMO_REVIEW_DEV_URL,app.isPackaged);
 let window:BrowserWindow|null=null;
 let worker:WorkerClient;
 let settings:AppSettings;
@@ -148,7 +159,7 @@ async function createWindow(){
   window.webContents.on('will-navigate',event=>event.preventDefault());
   window.webContents.on('did-finish-load',()=>{pageLoaded=true;for(const item of pendingEvents.splice(0))send(item.event,item.data);});
   window.on('closed',()=>{window=null;pageLoaded=false;captureGrant.clear();capturedDemoId=null;});
-  if(!app.isPackaged && process.env.DEMO_REVIEW_DEV_URL==='http://127.0.0.1:5173')await window.loadURL(process.env.DEMO_REVIEW_DEV_URL);
+  if(devOrigin)await window.loadURL(devOrigin);
   else await window.loadFile(join(__dirname,'../dist/index.html'));
 }
 const gotLock=app.requestSingleInstanceLock();
@@ -202,7 +213,8 @@ else{
         callback(allowed?{video:source}:{});
       }).catch(()=>{try{callback({});}catch{/* Requesting window closed during source lookup. */}});
     });
-    session.defaultSession.webRequest.onHeadersReceived((details,callback)=>callback({responseHeaders:{...details.responseHeaders,'Content-Security-Policy':["default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: demomap:; media-src 'self' blob: democlip:; connect-src 'self' ws://127.0.0.1:5173; object-src 'none'; base-uri 'none'; frame-src 'none'"]}}));
+    const developmentSocket=devOrigin?` ${devOrigin.replace('http:','ws:')}`:'';
+    session.defaultSession.webRequest.onHeadersReceived((details,callback)=>callback({responseHeaders:{...details.responseHeaders,'Content-Security-Policy':[`default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: demomap:; media-src 'self' blob: democlip:; connect-src 'self'${developmentSocket}; object-src 'none'; base-uri 'none'; frame-src 'none'`]}}));
     await createWindow();
   }).catch(error=>{dialog.showErrorBox('CS Demo Review could not start',String(error));app.quit();});
   app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)void createWindow();});

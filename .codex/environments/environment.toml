@@ -1,0 +1,38 @@
+version = 1
+name = "CS Demo Review"
+
+[setup]
+script = "node -e \"throw new Error('CS Demo Review desktop development requires Windows.')\""
+
+[setup.win32]
+script = 'powershell.exe -NoProfile -File scripts/setup-worktree.ps1'
+
+[[actions]]
+name = "Run desktop app"
+icon = "run"
+command = "npm run dev"
+platform = "win32"
+
+[[actions]]
+name = "Check application"
+icon = "test"
+command = 'cmd /c "npm run typecheck && npm test"'
+platform = "win32"
+
+[[actions]]
+name = "Test workers"
+icon = "test"
+command = "npm run test:worker"
+platform = "win32"
+
+[[actions]]
+name = "Set up worktree"
+icon = "tool"
+command = "npm run setup:worktree"
+platform = "win32"
+
+[[actions]]
+name = "Install map extractor"
+icon = "tool"
+command = "node scripts/setup-tools.mjs --extractor"
+platform = "win32"

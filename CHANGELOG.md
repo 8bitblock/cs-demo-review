@@ -58,3 +58,11 @@
 
 - Prepared the initial source snapshot for the private `8bitblock/cs-demo-review` GitHub repository, including application code, workers, documentation, tests, and packaging assets.
 - Verified TypeScript checks and all 52 application tests before the initial push.
+
+## Session additions and fixes — ChatGPT/Codex worktrees
+
+- Added a shared local environment with automatic Windows dependency setup, worker/app builds, and actions for running the app, checking code, testing workers, and installing the optional map extractor.
+- Added portable-tool copying for managed worktrees and a repeatable `npm run setup:worktree` command for fresh checkouts.
+- Isolated source app profiles, instance locks, settings, and libraries per checkout so parallel worktrees do not share application data by default.
+- Fixed development-server port collisions and used the actual loopback port for Electron loading and its restricted development WebSocket policy.
+- Added development-origin regression tests, persistent project instructions, and a guide for starting worktree chats, creating branches, and handing work back to the local checkout.

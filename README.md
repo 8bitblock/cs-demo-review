@@ -14,6 +14,8 @@ npm start
 
 For interface development, build the workers once with `npm run build:worker`, then run `npm run dev`. If Go is not on PATH, set `GO_BINARY` to its executable. The build also detects `.tools/go/bin/go.exe`.
 
+For ChatGPT/Codex worktrees, select the **CS Demo Review** local environment to install dependencies and build a fresh checkout automatically, or run `npm run setup:worktree`. See [the worktree guide](docs/WORKTREES.md) for setup, parallel development, and branch handoff. Source launches use a separate library and Electron profile under each checkout's `.tmp/electron-user-data`; packaged builds retain their existing user-data location.
+
 ## Review a match
 
 1. Choose **Import demos** or drop uncompressed `.dem` files into the app. Parsing runs locally in separate processes.
